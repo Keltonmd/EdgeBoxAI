@@ -3,7 +3,8 @@ from MqttAgent import MqttAgent
 import time
 
 agent = CoppeliaBracoAgent("/UR10")
-posDisponivel = agent.getPosicoesRack("/rack1/pos", 10)
+posDisponivelVer = agent.getPosicoesRack("/rack1/pos", 10)
+posDisponivelAzul = agent.getPosicoesRack("/rack2/pos", 10)
 
 topicos = ["/entregador/coletaDisponivel", "/edison/resultado"]
 client = MqttAgent("UR10", topicos)
@@ -35,18 +36,32 @@ def pegarBloco():
     agent.mover_para_posicao_xyz([posEspera[0], posEspera[1], posEspera[2]])
 
 def guardarBloco():
+    
+    if client.resultado == 0:
+        rot = 180
+    else:
+        rot = -178.9999
+        
     time.sleep(3)
     espera = agent.getObjeto("/UR10/posEsperaAtras")
-    agent.rotacionar_para_posicao_xyz(180, espera)
+    agent.rotacionar_para_posicao_xyz(rot, espera)
     
-    time.sleep(1)
+    time.sleep(10)
     pos = []
-    for posicao in posDisponivel:
-        if posicao["livre"] and client.resultado == posicao["cor"]:
-            posicao["livre"] = False
-            pos = posicao["pos"]
-            break
-            
+    
+    if client.resultado == 0: # Azul
+        for posicao in posDisponivelAzul:
+            if posicao["livre"]:
+                posicao["livre"] = False
+                pos = posicao["pos"]
+                break
+    else: # Vermelho
+        for posicao in posDisponivelVer:
+            if posicao["livre"]:
+                posicao["livre"] = False
+                pos = posicao["pos"]
+                break
+                
     if not pos:
         return
     
@@ -76,7 +91,9 @@ def guardarBloco():
     agent.rotacionar_para_posicao_xyz(0, espera)
 
 def todas_posicoes_ocupadas():
-    return not any(pos["livre"] for pos in posDisponivel)
+    if not any(pos["livre"] for pos in posDisponivelVer) and not any(pos["livre"] for pos in posDisponivelAzul):
+        return True
+    return False
 
 agent.abrirGarra()
 while True:

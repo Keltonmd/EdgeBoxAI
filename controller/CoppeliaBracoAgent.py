@@ -283,12 +283,10 @@ class CoppeliaBracoAgent:
     
     def getPosicoesRack(self, path, quant):
         posDisponivel = []
-        cor = 0
+
         for i in range(quant):
             pos = self.sim.getObjectPosition(self.sim.getObject(path, {'index': i}), -1)
-            posDisponivel.append({'pos': pos, 'livre': True, 'cor':cor})
-            if i == 4:
-                cor = 1
+            posDisponivel.append({'pos': pos, 'livre': True})
         
         return posDisponivel
 
