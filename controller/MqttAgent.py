@@ -34,7 +34,7 @@ class MqttAgent:
             "/entregador/encomendaColetada": self.tratar_encomenda_coletada,
             "/colaboracao/fim": self.tratar_fim_colaboracao,
             "/cam/capture": self.tratar_solicitar_imagem,
-            "/edison/resultado": self.tratar_resultado_recebido
+            "/esp/resultado": self.tratar_resultado_recebido
         })
         
         self.client.connect(broker, port, 60)

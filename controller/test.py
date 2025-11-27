@@ -7,7 +7,7 @@ agent.obterScriptHandle()
 posDisponivelVer = agent.getPosicoesRack("/rack1/pos", 10)
 posDisponivelAzul = agent.getPosicoesRack("/rack2/pos", 10)
 
-topicos = ["/entregador/coletaDisponivel", "/esp/resultado"]
+topicos = ["/entregador/coletaDisponivel", "/edison/resultado"]
 client = MqttAgent("UR10", topicos)
 
 segurando_bloco = False
@@ -45,8 +45,9 @@ def guardarBloco():
     time.sleep(5)
     
     pos = []
-    
-    if client.resultado == 0: # Azul
+    resultado = 1
+    #client.
+    if resultado == 0: # Azul
         for posicao in posDisponivelAzul:
             if posicao["livre"]:
                 posicao["livre"] = False
@@ -62,15 +63,15 @@ def guardarBloco():
     if not pos:
         return
     
-    agent.mover(pos[0], espera[1], pos[2] + 0.01, 0, 0, 180)
-    time.sleep(1)
-    agent.mover_para_posicao_xyz([pos[0], pos[1] + 0.01, pos[2] + 0.01])
+    agent.mover(pos[0], espera[1], pos[2] + 0.02, 0, 0, 180)
+    time.sleep(2)
+    agent.mover(pos[0], pos[1], pos[2] + 0.02, 0, 0, 180)
     
     time.sleep(2)
     agent.abrirGarra()
     time.sleep(2)
     
-    agent.mover_para_posicao_xyz([pos[0], espera[1], pos[2] + 0.02])
+    agent.mover(pos[0], espera[1], pos[2] + 0.02, 0, 0, 180)
     time.sleep(3)
     agent.mover(espera[0], espera[1], espera[2], 0, 0, 180)
     
@@ -79,36 +80,13 @@ def guardarBloco():
     espera = agent.getPos("/UR10/posEspera")
     
     agent.mover(espera[0], espera[1], espera[2], 0, 0, 0)
-    time.sleep(2)
-    
-    
+
 def todas_posicoes_ocupadas():
     if not any(pos["livre"] for pos in posDisponivelVer) and not any(pos["livre"] for pos in posDisponivelAzul):
         return True
     return False
 
 agent.abrirGarra()
-while True:
-    if client.espera_bloco and not segurando_bloco:
-        pegarBloco()
-        print(f"Bloco pego!")
-        client.publicar("/entregador/encomendaColetada", {"status": True})
-        client.espera_bloco = False
-        segurando_bloco = True
-        
-    if segurando_bloco and not guardar_caixa:
-        client.publicar("/cam/capture", {"status": True})
-        guardar_caixa = True
-        
-    if guardar_caixa and client.resposta:
-        guardarBloco()
-        print(f"Bloco guardado!")
-        segurando_bloco = False
-        guardar_caixa = False
-        client.resposta = False
-    
-    if todas_posicoes_ocupadas():
-        client.publicar("/colaboracao/fim", {"status": True}, qos=1)
-        print("Todos os blocos Guardados")
-        client.desconectar()
-        break
+
+
+guardarBloco()

@@ -24,6 +24,8 @@ class CoppeliaBracoAgent:
         self.tip = []
         self.targetIk = []
         
+        self.script_handle = None
+        
         self.inicializar()
     
     def inicializar(self):
@@ -50,6 +52,12 @@ class CoppeliaBracoAgent:
 
     def obterTarget(self):
         self.target = self.sim.getObject(self.caminho + "/target")
+    
+    def obterScriptHandle(self):
+        self.script_handle = self.sim.getScript(
+            self.sim.scripttype_childscript,
+            self.baseRobo
+        )
 
     def obterGarra(self):
         self.baseGarra = self.sim.getObject(self.caminho + "/ROBOTIQ85")
@@ -292,3 +300,16 @@ class CoppeliaBracoAgent:
 
     def getObjeto(self, path):
         return self.sim.getObject(path)
+    
+    
+    def mover(self, x, y, z, rx, ry, rz):
+        args = [self.target, x, y, z, rx, ry, rz]
+
+        try:
+            return self.sim.callScriptFunction(
+                "remoteMoveToPosition",
+                self.script_handle,
+                args
+            )
+        except Exception as e:
+            print("Erro no mover():", e)

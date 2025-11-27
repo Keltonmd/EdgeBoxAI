@@ -21,7 +21,7 @@ while True:
         
         # Pré-processamento da imagem
         img = preprocessar_imagem(img)
-        client.publicar_bytes("/edison/classificar", img.tobytes(), 0)
+        client.publicar_bytes("/esp/classificar", img.tobytes(), 0)
         client.capture = False
         
     if client.finalizado:
