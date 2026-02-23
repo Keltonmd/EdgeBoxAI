@@ -74,8 +74,8 @@ class CoppeliaMobileAgent:
         return -1, -1 
     
     def moverRobo(self, alvo):
-        vel_max = 8.0
-        vel_min = 7.0
+        vel_max = 20.0
+        vel_min = 15.0
         
         while True:
             posRobot_xyz = self.sim.getObjectPosition(self.baseRobo, -1)

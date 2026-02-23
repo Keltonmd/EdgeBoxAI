@@ -6,8 +6,10 @@ agent = CoppeliaBracoAgent("/Franka")
 topicos = [("/bloco/disponivel", 1), "/entregador/pontoRecebimento", "/colaboracao/fim"]
 segurando_bloco = False
 client = MqttAgent("Franka", topicos)
+bloco = None
 
 def pegarBloco():
+    global bloco
     agent.abrirGarra()
     time.sleep(1)
     
@@ -29,6 +31,7 @@ def pegarBloco():
     agent.subirBraco(altura_inicial)
     
 def entregarBloco():
+    global bloco
     pos_Entrega = agent.getPos("/youBot/cuboPos")
     
     agent.mover_para_posicao_xyz([pos_Entrega[0], pos_Entrega[1], None])
@@ -37,6 +40,8 @@ def entregarBloco():
     time.sleep(2)
     agent.abrirGarra()
     time.sleep(1)
+
+    agent.corrigirCaixa(bloco, [pos_Entrega[0], pos_Entrega[1], pos_Entrega[2]])
     
     posEspera = agent.getPos("/pontoEspera")
     agent.subirBraco(posEspera[2])

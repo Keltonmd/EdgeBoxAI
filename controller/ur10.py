@@ -4,8 +4,8 @@ import time
 
 agent = CoppeliaBracoAgent("/UR10")
 agent.obterScriptHandle()
-posDisponivelVer = agent.getPosicoesRack("/rack1/pos", 10)
-posDisponivelAzul = agent.getPosicoesRack("/rack2/pos", 10)
+posDisponivelVer = agent.getPosicoesRack("/rack/posVer", 10)
+posDisponivelAzul = agent.getPosicoesRack("/rack/posAzu", 10)
 
 topicos = ["/entregador/coletaDisponivel", "/esp/resultado"]
 client = MqttAgent("UR10", topicos)
@@ -37,12 +37,8 @@ def pegarBloco():
     agent.mover_para_posicao_xyz([posEspera[0], posEspera[1], posEspera[2]])
 
 def guardarBloco():
-        
-    time.sleep(3)
-    espera = agent.getPos("/UR10/posEsperaAtras")
-    agent.mover(espera[0], espera[1], espera[2], 0, 0, 180)
-    
-    time.sleep(5)
+    espera = agent.getObjeto("/UR10/posEsperaAtras")
+    agent.rotacionar_para_posicao_xyz(180, espera)
     
     pos = []
     
@@ -62,24 +58,28 @@ def guardarBloco():
     if not pos:
         return
     
-    agent.mover(pos[0], espera[1], pos[2] + 0.01, 0, 0, 180)
+    agent.descerBraco(pos[2] + 0.01)
+    # Mover na horinzontal
+    agent.mover_para_posicao_xyz([pos[0], None, None])
+    # Mover na vertical
+    agent.mover_para_posicao_xyz([None, pos[1] + 0.055, None])
+
     time.sleep(1)
-    agent.mover_para_posicao_xyz([pos[0], pos[1] + 0.01, pos[2] + 0.01])
-    
-    time.sleep(2)
     agent.abrirGarra()
     time.sleep(2)
+
+    posEspera = agent.getPos("/UR10/posEsperaAtras")
     
-    agent.mover_para_posicao_xyz([pos[0], espera[1], pos[2] + 0.02])
-    time.sleep(3)
-    agent.mover(espera[0], espera[1], espera[2], 0, 0, 180)
+    # Mover na vertical
+    agent.mover_para_posicao_xyz([None, posEspera[1], None])
     
-    time.sleep(3)
-    
-    espera = agent.getPos("/UR10/posEspera")
-    
-    agent.mover(espera[0], espera[1], espera[2], 0, 0, 0)
-    time.sleep(2)
+    # Mover na horinzontal
+    agent.mover_para_posicao_xyz([posEspera[0], None, None])
+
+    agent.subirBraco(posEspera[2] + 0.01)
+        
+    espera = agent.getObjeto("/UR10/posEspera")
+    agent.rotacionar_para_posicao_xyz(0, espera)
     
     
 def todas_posicoes_ocupadas():
@@ -88,11 +88,13 @@ def todas_posicoes_ocupadas():
     return False
 
 agent.abrirGarra()
+
 while True:
     if client.espera_bloco and not segurando_bloco:
         pegarBloco()
         print(f"Bloco pego!")
         client.publicar("/entregador/encomendaColetada", {"status": True})
+        time.sleep(1)
         client.espera_bloco = False
         segurando_bloco = True
         

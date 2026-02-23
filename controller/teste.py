@@ -4,10 +4,10 @@ import time
 
 agent = CoppeliaBracoAgent("/UR10")
 agent.obterScriptHandle()
-posDisponivelVer = agent.getPosicoesRack("/rack1/pos", 10)
-posDisponivelAzul = agent.getPosicoesRack("/rack2/pos", 10)
+posDisponivelVer = agent.getPosicoesRack("/rack/posVer", 10)
+posDisponivelAzul = agent.getPosicoesRack("/rack/posAzu", 10)
 
-topicos = ["/entregador/coletaDisponivel", "/edison/resultado"]
+topicos = ["/entregador/coletaDisponivel", "/esp/resultado"]
 client = MqttAgent("UR10", topicos)
 
 segurando_bloco = False
@@ -36,17 +36,13 @@ def pegarBloco():
     
     agent.mover_para_posicao_xyz([posEspera[0], posEspera[1], posEspera[2]])
 
-def guardarBloco():
-        
-    time.sleep(3)
-    espera = agent.getPos("/UR10/posEsperaAtras")
-    agent.mover(espera[0], espera[1], espera[2], 0, 0, 180)
-    
-    time.sleep(5)
+def guardarBloco(resultado):
+
+    espera = agent.getObjeto("/UR10/posEsperaAtras")
+    agent.rotacionar_para_posicao_xyz(180, espera)
     
     pos = []
-    resultado = 1
-    #client.
+    
     if resultado == 0: # Azul
         for posicao in posDisponivelAzul:
             if posicao["livre"]:
@@ -63,24 +59,30 @@ def guardarBloco():
     if not pos:
         return
     
-    agent.mover(pos[0], espera[1], pos[2] + 0.02, 0, 0, 180)
-    time.sleep(2)
-    agent.mover(pos[0], pos[1], pos[2] + 0.02, 0, 0, 180)
-    
-    time.sleep(2)
-    agent.abrirGarra()
-    time.sleep(2)
-    
-    agent.mover(pos[0], espera[1], pos[2] + 0.02, 0, 0, 180)
-    time.sleep(3)
-    agent.mover(espera[0], espera[1], espera[2], 0, 0, 180)
-    
-    time.sleep(3)
-    
-    espera = agent.getPos("/UR10/posEspera")
-    
-    agent.mover(espera[0], espera[1], espera[2], 0, 0, 0)
+    agent.descerBraco(pos[2] + 0.01)
+    # Mover na horinzontal
+    agent.mover_para_posicao_xyz([pos[0], None, None])
+    # Mover na vertical
+    agent.mover_para_posicao_xyz([None, pos[1] + 0.04, None])
 
+    time.sleep(1)
+    agent.abrirGarra()
+    time.sleep(3)
+
+    posEspera = agent.getPos("/UR10/posEsperaAtras")
+    
+    # Mover na vertical
+    agent.mover_para_posicao_xyz([None, posEspera[1], None])
+    
+    # Mover na horinzontal
+    agent.mover_para_posicao_xyz([posEspera[0], None, None])
+
+    agent.subirBraco(posEspera[2] + 0.01)
+        
+    espera = agent.getObjeto("/UR10/posEspera")
+    agent.rotacionar_para_posicao_xyz(0, espera)
+    
+    
 def todas_posicoes_ocupadas():
     if not any(pos["livre"] for pos in posDisponivelVer) and not any(pos["livre"] for pos in posDisponivelAzul):
         return True
@@ -88,5 +90,11 @@ def todas_posicoes_ocupadas():
 
 agent.abrirGarra()
 
+pegarBloco()
+guardarBloco(1)
 
-guardarBloco()
+'''
+for _ in range(10):
+    pegarBloco()
+    guardarBloco(0)
+'''

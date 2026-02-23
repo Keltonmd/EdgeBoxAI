@@ -6,7 +6,7 @@ ultimoEstado = False
 agent = CoppeliaSensorAgent("/proximitySensor")
 
 client = MqttAgent("sensor", ["/colaboracao/fim"])
-cont = 0
+cont = 1
 while True:
     detectado = agent.leitura()
     

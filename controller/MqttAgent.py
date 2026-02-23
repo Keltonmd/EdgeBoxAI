@@ -1,13 +1,16 @@
 import paho.mqtt.client as mqtt
 from types import MappingProxyType
 import json
+import time
+import os
+import pandas as pd
 
 class MqttAgent:
     # multiagent.ddns.net
     # ip: ip do edison
     # ip 10.73.186.74
     # ip: 192.168.1.223
-    def __init__(self, id: str, topicos_mqtt: list, broker: str = "localhost", port: int = 1883):
+    def __init__(self, id: str, topicos_mqtt: list, broker: str = "debian.local", port: int = 1883):
         self.client = mqtt.Client()
         self.client.on_message = self.on_message
         
@@ -52,14 +55,31 @@ class MqttAgent:
                 self.client.subscribe(topico[0], qos=topico[1])
     
     def on_message(self, client, userdata, msg):
+        timestamp_recepcao = time.time()
+
         try:
-            payload_str = msg.payload.decode(errors="ignore").strip()
-            if payload_str.startswith("{") and payload_str.endswith("}"):
-                payload = json.loads(payload_str)
-            else:
-                raise ValueError("Não é JSON")
-        except Exception:
-            payload = int.from_bytes(msg.payload, byteorder='little', signed=True)
+            payload_str = msg.payload.decode("utf-8").strip()
+            payload = json.loads(payload_str)
+
+        except json.JSONDecodeError:
+            print(f"[MQTT] Payload inválido (não é JSON): {msg.payload}")
+            return
+
+        except Exception as e:
+            print(f"[MQTT] Erro ao decodificar payload: {e}")
+            return
+        
+        # Registrar latência se timestamp_envio presente no payload
+        if isinstance(payload, dict) and "timestamp_envio" in payload:
+            timestamp_envio = payload.pop("timestamp_envio")
+            latencia = (timestamp_recepcao - timestamp_envio) * 1000  # em ms
+            
+            self.dados_latencia.append({
+                'Robo_Publicador': payload.get('id_publicador', 'Desconhecido'),
+                'Robo_Assinante': self.id_agente,
+                'Topico': msg.topic,
+                'Latencia_ms': latencia
+            })
             
         handler = self.topic_map.get(msg.topic)
         if handler:
@@ -71,6 +91,7 @@ class MqttAgent:
         self.client.loop_start()
         
     def publicar(self, canal: str, msg: dict, qos: int = 0):
+        msg["timestamp_envio"] = time.time()
         msg["id_publicador"] = self.id_agente
         msg = json.dumps(msg)
         self.client.publish(canal, payload=msg, qos=qos)
@@ -78,8 +99,30 @@ class MqttAgent:
     def publicar_bytes(self, canal: str, msg: bytes, qos: int = 0):
         self.client.publish(canal, payload=msg, qos=qos)
     
+    def salvar_resultados(self):
+        if not self.dados_latencia:
+            print(f"[MQTT] Nenhum dado de latência para o agente '{self.id_agente}'.")
+            return
+        
+        df = pd.DataFrame(self.dados_latencia)
+        nome_arquivo = f"resultados_{self.id_agente}.csv"
+        
+        arquivo_existe = os.path.exists(nome_arquivo)
+        
+        df.to_csv(
+            nome_arquivo,
+            mode="a",
+            header=not arquivo_existe,
+            index=False
+        )
+        
+        self.dados_latencia.clear()
+        
+        print(f"[MQTT] Dados de latência adicionados em '{nome_arquivo}'")
+    
     def desconectar(self):
         print("[MQTT] Desconectando do broker...")
+        self.salvar_resultados()
         self.client.loop_stop()
         self.client.disconnect()
         print("[MQTT] Desconectado.")
@@ -113,7 +156,7 @@ class MqttAgent:
         print("[MQTT] Solicitação de captura de imagem recebida.")
         
     def tratar_resultado_recebido(self, payload):
-        self.resultado = payload
+        self.resultado = payload["resultado"]
         self.resposta = True
         print(f"[MQTT] Resultado recebido: {payload}")
         print(f"[MQTT] resposta: {self.resposta}")

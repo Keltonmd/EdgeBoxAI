@@ -301,15 +301,33 @@ class CoppeliaBracoAgent:
     def getObjeto(self, path):
         return self.sim.getObject(path)
     
-    
+
     def mover(self, x, y, z, rx, ry, rz):
         args = [self.target, x, y, z, rx, ry, rz]
 
         try:
-            return self.sim.callScriptFunction(
+
+            # 2. Chama a função (O Lua vai começar a mover)
+            self.sim.callScriptFunction(
                 "remoteMoveToPosition",
                 self.script_handle,
                 args
             )
+
+            print("Aguardando robô chegar na posição...")
+            time.sleep(4)
+
+            print("Movimento Finalizado com Sucesso!")
+            return True
+
         except Exception as e:
             print("Erro no mover():", e)
+            return False
+        
+    def corrigirCaixa(self, caixa, posicao_correta):
+        # Obtém o handle numérico a partir da string (ex: '/cubo_1')
+        handle_caixa = self.sim.getObject(caixa)
+        
+        # Usa o handle numérico para setar a posição
+        self.sim.setObjectPosition(handle_caixa, -1, posicao_correta)
+            

@@ -13,6 +13,7 @@ scripts = [
     "youBot.py",
     "ur10.py",
     "cam.py",
+    "logger_esp.py"
 ]
 
 processos = []
