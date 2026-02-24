@@ -44,6 +44,9 @@ Você deve **substituir totalmente** o conteúdo de `main/main_functions.cc` pel
 
 Como o consumo de RAM dos modelos V2 e V3 vai muito além da memória SRAM interna, você deve habilitar o uso do CI de PSRAM do hardware, bem como expandir a Flash e utilizar uma tabela de partições customizada.
 
+> [!WARNING]
+> **Antes de abrir o Menuconfig:** Verifique se, no arquivo `CMakeLists.txt` na raiz do projeto (não o da pasta `main`), existe a linha `idf_build_set_property(MINIMAL_BUILD OFF)`. Caso esteja `ON` ou ausente, ative-a como `OFF`. Caso contrário, o menu virá no formato mínimo, escondendo opções críticas para as etapas abaixo.
+
 Abra o terminal do ESP-IDF e execute:
 ```bash
 idf.py menuconfig
