@@ -41,21 +41,34 @@ def guardarBloco():
     agent.rotacionar_para_posicao_xyz(180, espera)
     
     pos = []
-    
-    if client.resultado == 0: # Azul
-        for posicao in posDisponivelAzul:
-            if posicao["livre"]:
-                posicao["livre"] = False
-                pos = posicao["pos"]
-                break
-    else: # Vermelho
-        for posicao in posDisponivelVer:
-            if posicao["livre"]:
-                posicao["livre"] = False
-                pos = posicao["pos"]
-                break
-                
+
+    if client.resultado == 0:  # Azul
+        prioridade = posDisponivelAzul
+        fallback = posDisponivelVer
+    else:  # Vermelho
+        prioridade = posDisponivelVer
+        fallback = posDisponivelAzul
+
+
+    for posicao in prioridade:
+        if posicao["livre"]:
+            posicao["livre"] = False
+            pos = posicao["pos"]
+            break
+
+
     if not pos:
+        print("Sem posição na cor correta, usando fallback...")
+        
+        for posicao in fallback:
+            if posicao["livre"]:
+                posicao["livre"] = False
+                pos = posicao["pos"]
+                break
+
+
+    if not pos:
+        print("Sem posições disponíveis em nenhuma estante.")
         return
     
     agent.descerBraco(pos[2] + 0.01)
