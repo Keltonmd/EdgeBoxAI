@@ -431,7 +431,9 @@ EdgeBoxAI/
 │   │   ├── model_data.cc         # CNN Autoral convertida em array C (modelo padrão)
 │   │   ├── CMakeLists.txt        # Build config do componente main
 │   │   └── idf_component.yml     # Dependência: espressif/esp-tflite-micro v1.3.5
-│   ├── modelos/                  # Modelos alternativos (MobileNet V2/V3) em array C
+│   ├── modelos/                  # Modelos alternativas já convertidos para array C
+│   │   ├── v2_Inteira_model.cc   # MobileNet V2 — quantização inteira em array C
+│   │   └── v3_Inteira_model.cc   # MobileNet V3 Small — quantização inteira em array C
 │   ├── CMakeLists.txt            # Build config do projeto
 │   ├── partitions.csv            # Tabela de partições customizada (Flash 16 MB)
 │   ├── codigos.txt               # Backup do main_functions.cc (CNN Autoral)
@@ -446,14 +448,17 @@ EdgeBoxAI/
 │   ├── modelo_Inteira.tflite     # CNN Autoral — quantização inteira (~171 KB)
 │   ├── v2_*.tflite               # MobileNet V2 nas 3 variantes de quantização
 │   ├── v3_*.tflite               # MobileNet V3 nas 3 variantes de quantização
-│   └── tflite_to_cc.sh           # Script: converte .tflite → array C (.cc/.h) via xxd
+│   └── tflite_to_cc.sh           # Script: converte todos os .tflite → array C via xxd
+│                                 # (saída em ~/Documentos/GitHub/tflite/modelos/cc/)
 │
 ├── Dataset/
-│   ├── 0_Azul/                   # 540 imagens de objetos predominantemente azuis
-│   ├── 1_Vermelho/               # 540 imagens de objetos predominantemente vermelhos
-│   └── 2_background/             # 576 imagens de fundo (sem objeto de interesse)
+│   ├── 0_Azul/                   # Imagens de objetos predominantemente azuis
+│   ├── 1_Vermelho/               # Imagens de objetos predominantemente vermelhos
+│   └── 2_background/             # Imagens de fundo (sem objeto de interesse)
+│                                 # ⚠️ As imagens não estão versionadas no Git
 │
-└── Treinamento/                  # Notebooks/scripts de treinamento (Google Colab)
+└── Treinamento/
+    └── CNN_Lite_final.ipynb      # Notebook Colab com treinamento e conversão dos modelos
 ```
 
 ---
@@ -483,22 +488,26 @@ Nenhuma ação necessária. O modelo já está em `esp32/main/model_data.cc`.
 
 ### 11.2 Usando MobileNet V2 ou V3
 
-#### Passo 1 — Gerar os arquivos C a partir do `.tflite`
+#### Passo 1 — Usar os arquivos já convertidos de `esp32/modelos/`
 
-```bash
-cd modelos/
-bash tflite_to_cc.sh
+Os modelos V2 e V3 (quantização inteira) já estão convertidos em array C na pasta `esp32/modelos/`:
+
+```
+esp32/modelos/
+├── v2_Inteira_model.cc   ← MobileNet V2
+└── v3_Inteira_model.cc   ← MobileNet V3 Small
 ```
 
-Isso usa o comando `xxd` para gerar os arquivos `v3_Inteira.cc` e `v3_Inteira.h` (por exemplo).
+> Se precisar converter outros `.tflite` para array C, execute o script `modelos/tflite_to_cc.sh`. Os arquivos gerados serão salvos em `~/Documentos/GitHub/tflite/modelos/cc/`.
 
-#### Passo 2 — Copiar os arquivos para `main/`
+#### Passo 2 — Copiar o arquivo do modelo para `main/`
 
 ```bash
-# Exemplo com MobileNet V3 quantização inteira
-cp modelos/v3_Inteira.cc esp32/main/model_data.cc
-cp modelos/v3_Inteira.h  esp32/main/model.h
+# Exemplo com MobileNet V3 — quantização inteira
+cp esp32/modelos/v3_Inteira_model.cc esp32/main/model_data.cc
 ```
+
+> O arquivo `.h` correspondente já está em `esp32/main/model.h` — ajuste apenas o nome do símbolo se necessário.
 
 #### Passo 3 — Substituir o `main_functions.cc` pela versão PSRAM
 
@@ -619,9 +628,11 @@ O conjunto de dados foi coletado especificamente para este projeto:
 
 Divisão: **70% treino / 15% validação / 15% teste** (amostragem estratificada).
 
+> ⚠️ As imagens do dataset **não estão incluídas** no repositório (`.gitignore`). Os modelos treinados (`.keras` e `.tflite`) já estão disponíveis na pasta `modelos/`.
+
 ### Treinamento
 
-Os modelos foram treinados no **Google Colaboratory** com:
+O notebook de treinamento está em **`Treinamento/CNN_Lite_final.ipynb`**, desenvolvido no **Google Colaboratory** com:
 - **TensorFlow / Keras 2.17.0** + Python 3.10
 - **GPU NVIDIA T4** (aceleração de hardware)
 - Entrada: imagens **32×32 px RGB**
@@ -630,12 +641,15 @@ As arquiteturas MobileNet V2 e V3 usaram **fine-tuning** em duas fases; a CNN Au
 
 ### Conversão para TFLite e array C
 
-Após treinar, os modelos `.keras` são convertidos para `.tflite` com o TFLite Converter (versão 2.17.0) e então convertidos para array C com a ferramenta `xxd`:
+Após treinar, os modelos `.keras` são convertidos para `.tflite` com o TFLite Converter (versão 2.17.0) e então para array C com `xxd`:
 
 ```bash
 cd modelos/
 bash tflite_to_cc.sh
+# Saída gerada em: ~/Documentos/GitHub/tflite/modelos/cc/
 ```
+
+Os arrays `.cc` dos modelos V2 e V3 (quantização inteira) **já estão pré-gerados** em `esp32/modelos/`.
 
 ---
 
